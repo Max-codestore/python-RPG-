@@ -27,17 +27,18 @@ class Locations:
         if where_to_go_from_here == 0:
             findme = self.map.index(M.location) - 1
             if M.location != 'plains':
-                choice = self.loc(local)[where_to_go_from_here + 1],self.map[findme][len(self.map[findme])-1]
+                choice = self.loc(local)[where_to_go_from_here + 1],self.map[findme][len(self.map[findme])]
                 self.different_provence = True
+                return choice
             else:
                 choice = self.loc(local)[where_to_go_from_here + 1]
                 return choice
         if where_to_go_from_here == len(self.loc(local))-1:
             findme = self.map.index(M.location) + 1
             if self.map != 'dark clouds':
-                print(f'd {self.map[findme+3][0]} d')
-                choice = self.map[findme][0],self.map[findme][len(self.map[findme])+1]
+                choice = self.map[findme][0],self.map[findme+2][0]
                 self.different_provence = True
+                return choice
             else:
                 choice = self.loc(local)[where_to_go_from_here + 1]
                 return choice
@@ -161,8 +162,11 @@ class Main:
             move = input('where do you want to move? ')
             if move in choices:
                 if L.different_provence == True and choices.index(move) == 1 and L.unlocked[(L.map.index(self.location)) + 1] == 1:
-                    M.location = L.map[(L.map.index(self.location)+2)]
-                    print(M.location)
+                    print(choices)
+                    if move == choices[0]:
+                        M.location = L.map[(L.map.index(self.location)-2)]
+                    else:
+                        M.location = L.map[(L.map.index(self.location)+2)]
                     L.precise_location = move
                 M.movement(move)
             else:

@@ -20,14 +20,15 @@ class Locations:
         return self.map[where+1]
     def move(self,local):
         self.different_provence = False
-        if self.start == False:
-            B.encounter()
+        #if self.start == False:
+        #    B.encounter()
         self.start = False
+
         where_to_go_from_here = self.loc(local).index(self.precise_location)
         if where_to_go_from_here == 0:
             findme = self.map.index(M.location) - 1
             if M.location != 'plains':
-                choice = self.loc(local)[where_to_go_from_here + 1],self.map[findme][len(self.map[findme])]
+                choice = self.map[findme][len(self.map[findme])-1],self.loc(local)[where_to_go_from_here+1]
                 self.different_provence = True
                 return choice
             else:
@@ -36,7 +37,7 @@ class Locations:
         if where_to_go_from_here == len(self.loc(local))-1:
             findme = self.map.index(M.location) + 1
             if self.map != 'dark clouds':
-                choice = self.map[findme][0],self.map[findme+2][0]
+                choice = self.map[findme][len(self.map[findme])-2],self.map[findme+2][0]
                 self.different_provence = True
                 return choice
             else:
@@ -45,7 +46,7 @@ class Locations:
         elif where_to_go_from_here == len(self.loc(local)) or where_to_go_from_here == len(self.loc(local))-1:
             choice = self.loc(local)[where_to_go_from_here - 1]
         else:
-            choice = self.loc(local)[where_to_go_from_here + 1],self.loc(local)[where_to_go_from_here - 1]
+            choice = self.loc(local)[where_to_go_from_here - 1],self.loc(local)[where_to_go_from_here + 1]
         return choice
 #def spescial_location(self):
 
@@ -146,6 +147,7 @@ class Main:
         self.char = C.stats()
         self.location = 'plains'
         self.start_up = True
+        self.stay = False
     def start(self):
         if self.start_up == True:
             print('you start with the charater of alice')
@@ -160,14 +162,22 @@ class Main:
             else:
                 print(choices)
             move = input('where do you want to move? ')
+            #L.unlocked[(L.map.index(self.location)) + choices.index(move)] == 1
             if move in choices:
-                if L.different_provence == True and choices.index(move) == 1 and L.unlocked[(L.map.index(self.location)) + 1] == 1:
-                    print(choices)
-                    if move == choices[0]:
-                        M.location = L.map[(L.map.index(self.location)-2)]
+                if L.different_provence == True:
+                    check = L.loc(self.location)
+                    for i in range(len(check)):
+                        if check[i] == move:
+                            self.stay = True
+                    if self.stay == True:
+                            L.precise_location = move
+                            self.stay = False
                     else:
-                        M.location = L.map[(L.map.index(self.location)+2)]
-                    L.precise_location = move
+                        if move == choices[0]:
+                            self.location = L.map[(L.map.index(self.location))-2]
+                        else:
+                            self.location = L.map[(L.map.index(self.location))+2]
+                L.precise_location = move
                 M.movement(move)
             else:
                 print('cant get there')

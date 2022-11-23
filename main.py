@@ -1,9 +1,6 @@
 import random,math,time
 print("welcome to max's text based rpg")
 #add ability to unlock new areas
-#@todo
-###fix movement system so it works both ways
-
 class Dungouns:
      def __init__(self):
          self.dungons=['grassland well','castle walls','dark clouds']
@@ -13,17 +10,16 @@ class Locations:
         self.map =['plains',['east plain','north plain','south plain','central plain','west plain'],'eastern desert',['oasis','small northern town','central desert fortress','hunted wasteland'],'town','deep cave','dark clouds']
         self.precise_location = 'east plain'
         self.start = True
-        self.unlocked = [1,1,0,0,0]
+        self.unlocked = [1,0,0,0,0]
         self.different_provence = False
     def loc(self,local):
         where = self.map.index(local)
         return self.map[where+1]
     def move(self,local):
         self.different_provence = False
-        #if self.start == False:
-        #    B.encounter()
+        if self.start == False:
+            B.encounter()
         self.start = False
-
         where_to_go_from_here = self.loc(local).index(self.precise_location)
         if where_to_go_from_here == 0:
             findme = self.map.index(M.location) - 1
@@ -52,7 +48,38 @@ class Locations:
 
 #    def new_unlock(self):
 
+class Quest:
+    def __init__(self):
+        self.questlist = {'central plain':{'impressive progress':[L.precise_location,'west plain',40,False,False,False,'des']}}
+        self.xp= 0
+        self.complete = False
+        self.objective1 = 0
+        self.objective2 = 0
+        self.adtional_reward = False
+        self.chain = False
+        self.description = 'test'
+    def set_quest(self,quest):
+        stuff = self.questlist[L.precise_location][quest]
+        self.stuff=1
+    def finish_quest(self):
+        self.stuff=2
+    def update_quest(self):
+        self.stuff=3
+    def check_quest(self):
+        self.stuff=4
+    def start_quest(self):
+        try:
+            choices = list(self.questlist[L.precise_location])
+            print(choices)
+            questogofor = input('which quest do you want to embark on')
+            if questogofor in choices:
+                print('true')
+                Q.set_quest(questogofor)
+            else:
+                print('sorry thar quest doesnt exist')
 
+        except:
+            print('there is no quests here')
 class Battle:
     def __init__(self):
         self.enermy = {'plains':{'agressive plant':[200,5,T.type_ele(2),20,1,4,1],'thief':[300,2,T.type_ele(2),30,4,1,1]},'eastern desert':{'awakened sand':[150,10,T.type_ele(2),40,3,7,10]}}
@@ -155,6 +182,12 @@ class Main:
             self.start_up = False
         go = True
         while go:
+            action = input('what do you want to do: 1:move 2:look for quests')
+            if action == '1':
+                self.moving()
+            elif action == '2':
+                Q.start_quest()
+    def moving(self):
             choices = L.move(self.location)
             if len(choices[0]) != 1:
                 for i in range(len(choices)):
@@ -162,9 +195,8 @@ class Main:
             else:
                 print(choices)
             move = input('where do you want to move? ')
-            #L.unlocked[(L.map.index(self.location)) + choices.index(move)] == 1
             if move in choices:
-                if L.different_provence == True:
+                if L.different_provence == True and L.unlocked[(L.map.index(self.location))+1] == 1:
                     check = L.loc(self.location)
                     for i in range(len(check)):
                         if check[i] == move:
@@ -175,12 +207,20 @@ class Main:
                     else:
                         if move == choices[0]:
                             self.location = L.map[(L.map.index(self.location))-2]
+                            L.precise_location = move
+                            M.movement(move)
                         else:
                             self.location = L.map[(L.map.index(self.location))+2]
-                L.precise_location = move
-                M.movement(move)
+                            L.precise_location = move
+                            M.movement(move)
+                elif L.unlocked[(L.map.index(self.location))+1] != 1 and L.different_provence == True:
+                    print('cant get there')
+                else:
+                    L.precise_location = move
+                    M.movement(move)
             else:
                 print('cant get there')
+
     def movement(self,move):
         if move == 'hunted wasteland':
             sure = input('are you sure you want to go into the wasteland-it is highly dangerous and difficult to leave-type_ yes to agree to go into the wasteland')
@@ -239,6 +279,7 @@ D = Dungouns()
 M = Main()
 L = Locations()
 B = Battle()
+Q = Quest()
 M.start()
 
 

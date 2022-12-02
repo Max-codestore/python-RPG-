@@ -1,6 +1,9 @@
 import random,math,time
 print("welcome to max's text based rpg")
 #add ability to unlock new areas
+#@todo
+###fix movement system so it works both ways
+
 class Dungouns:
      def __init__(self):
          self.dungons=['grassland well','castle walls','dark clouds']
@@ -50,31 +53,54 @@ class Locations:
 
 class Quest:
     def __init__(self):
-        self.questlist = {'central plain':{'impressive progress':[L.precise_location,'west plain',40,False,False,False,'des']}}
-        self.xp= 0
-        self.complete = False
-        self.objective1 = 0
-        self.objective2 = 0
-        self.adtional_reward = False
-        self.chain = False
-        self.description = 'test'
-    def set_quest(self,quest):
-        stuff = self.questlist[L.precise_location][quest]
-        self.stuff=1
+        self.questlist = {'central plain':['impressive progress',['place','west plain',40,False,False,False,'des'],'help needed',['monster',12,False,False,False,'des','plains','theif',12]]}
+        self.questname =''
+        self.currentquest = []
+        self.quest_set = False
+        self.currentquestlocaton = ''
+    def set_quest(self,quest,details):
+        self.currentquest = details
+        self.questname = quest
+        self.quest_set = True
+        self.currentquestlocaton = L.precise_location
+        print(self.currentquest)
     def finish_quest(self):
-        self.stuff=2
+        self.quest_set = False
+        C.xp_gain(self.currentquest[2])
+        self.currentquest[3] = True
+        self.questlist[self.currentquestlocaton][self.questlist[self.currentquestlocaton].index(self.currentquest)] = self.currentquest
     def update_quest(self):
         self.stuff=3
     def check_quest(self):
-        self.stuff=4
+        if self.quest_set == True:
+            if self.currentquest[0]=='place':
+                if L.precise_location == self.currentquest[1]: 
+                    print('you finished the quest {0}'.format(self.questname))
+                    self.currentquest[3] = True
+                    self.finish_quest()
+            elif self.currentquest[0]=='monster':
+                if B.enermy[self.currentquest[6]][self.currentquest[7]][7] >= self.currentquest[8]:
+                    print('you finished the quest {0}'.format(self.questname))
+                    self.currentquest[5] = True
+                    self.finish_quest()
     def start_quest(self):
         try:
+            name = []
+            details = []
+            avliable = []
             choices = list(self.questlist[L.precise_location])
-            print(choices)
+            for i in range(len(choices)):
+                if (i % 2) == 0:
+                    name.append(choices[i])
+                else:
+                    details.append(choices[i])
+            for i in range(len(name)):
+                if details[i][3] == False:
+                    avliable.append(name[i])
+            print(avliable)
             questogofor = input('which quest do you want to embark on')
-            if questogofor in choices:
-                print('true')
-                Q.set_quest(questogofor)
+            if questogofor in avliable:
+                self.set_quest(questogofor,details[name.index(questogofor)])
             else:
                 print('sorry thar quest doesnt exist')
 
@@ -82,12 +108,13 @@ class Quest:
             print('there is no quests here')
 class Battle:
     def __init__(self):
-        self.enermy = {'plains':{'agressive plant':[200,5,T.type_ele(2),20,1,4,1],'thief':[300,2,T.type_ele(2),30,4,1,1]},'eastern desert':{'awakened sand':[150,10,T.type_ele(2),40,3,7,10]}}
+        self.enermy = {'plains':{'agressive plant':[200,5,T.type_ele(2),20,1,4,1,0],'thief':[300,2,T.type_ele(2),30,4,1,1,0]},'eastern desert':{'awakened sand':[150,10,T.type_ele(2),40,3,7,10,0]}}
         self.encounters = {'plains': 0.2,'eastern desert': 0.4,'dark clouds':0.6,'town': 0.3,'deep cave':0.5}
         self.enermy_hp = 0
         self.enermy_type_ = 0
         self.enermy_damage = 0
         self.enermy_xp = 0
+        self.numdefeted = 0
     def encounter(self):
         find = self.encounters[M.location] + random.random()
         if find >= 1:
@@ -101,8 +128,8 @@ class Battle:
             self.magic = stats[5]
             self.magic_count = stats[6]
             print('you have encountered a enermy {0}'.format(oppnent))
-            B.fight()
-    def fight(self):
+            B.fight(stats,oppnent)
+    def fight(self,stats,oppnent):
         hp = C.stats()[0]
         p_type_ = C.stats()[1]
         damage = C.stats()[2]
@@ -112,7 +139,7 @@ class Battle:
         magic_count = C.stats()[7]
         p_run = False
         print('{0}'.format(self.enermy_hp))
-        modifier = T.crit(p_type_,self.enermy_type_)
+        modifier = T.crit(p_type_,self.enermy_type_) 
         while self.enermy_hp >= 1 and hp >= 1:
             turn = input('what do you want to do 1 = attack 2 = heal 3 = magic attack 4 = run')
             magic_count = magic_count + 1
@@ -165,6 +192,9 @@ class Battle:
         if no_xp == True:
             M.start(),
         elif hp != 0:
+            stats[7] += 1
+            self.enermy[M.location][oppnent]=stats
+            print(self.enermy[M.location][oppnent])
             C.xp_gain(self.enermy_xp)
         else:
             print('you died')
@@ -183,10 +213,12 @@ class Main:
         go = True
         while go:
             action = input('what do you want to do: 1:move 2:look for quests')
+            Q.check_quest()
             if action == '1':
                 self.moving()
             elif action == '2':
                 Q.start_quest()
+
     def moving(self):
             choices = L.move(self.location)
             if len(choices[0]) != 1:
@@ -195,8 +227,8 @@ class Main:
             else:
                 print(choices)
             move = input('where do you want to move? ')
-            if move in choices:
-                if L.different_provence == True and L.unlocked[(L.map.index(self.location))+1] == 1:
+            if move in choices and move != '':
+                if L.different_provence == True:#needs fixing to enable you to move backwards even if area isnt unlocked
                     check = L.loc(self.location)
                     for i in range(len(check)):
                         if check[i] == move:
@@ -209,10 +241,12 @@ class Main:
                             self.location = L.map[(L.map.index(self.location))-2]
                             L.precise_location = move
                             M.movement(move)
-                        else:
+                        elif L.unlocked[(L.map.index(self.location))+1] == 1:
                             self.location = L.map[(L.map.index(self.location))+2]
                             L.precise_location = move
                             M.movement(move)
+                        else:
+                            print('cant get there')
                 elif L.unlocked[(L.map.index(self.location))+1] != 1 and L.different_provence == True:
                     print('cant get there')
                 else:
@@ -254,7 +288,7 @@ class Charaters:
              xp_gained = xp_gained - xp_needed
              C.level_up()
          self.next_xp = xp_needed
-         M.start()
+
      def level_up(self):
          self.hp *= self.levelup_mod[0]
          self.damage *= self.levelup_mod[1]

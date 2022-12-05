@@ -21,7 +21,7 @@ class Locations:
     def move(self,local):
         self.different_provence = False
         if self.start == False:
-            B.encounter()
+            B.encounter(False)
         self.start = False
         where_to_go_from_here = self.loc(local).index(self.precise_location)
         if where_to_go_from_here == 0:
@@ -53,7 +53,7 @@ class Locations:
 
 class Quest:
     def __init__(self):
-        self.questlist = {'central plain':['impressive progress',['place','west plain',40,False,False,False,'des'],'help needed',['monster',12,False,False,False,'des','plains','theif',12]]}
+        self.questlist = {'central plain':['impressive progress',['place','west plain',40,False,False,False,'move to the west plain'],'help needed',['monster',120,False,False,False,'plains','kill 4 thiefs','thief',4]]}
         self.questname =''
         self.currentquest = []
         self.quest_set = False
@@ -63,7 +63,6 @@ class Quest:
         self.questname = quest
         self.quest_set = True
         self.currentquestlocaton = L.precise_location
-        print(self.currentquest)
     def finish_quest(self):
         self.quest_set = False
         C.xp_gain(self.currentquest[2])
@@ -79,7 +78,7 @@ class Quest:
                     self.currentquest[3] = True
                     self.finish_quest()
             elif self.currentquest[0]=='monster':
-                if B.enermy[self.currentquest[6]][self.currentquest[7]][7] >= self.currentquest[8]:
+                if B.enermy[self.currentquest[5]][self.currentquest[7]][7] >= self.currentquest[8]:
                     print('you finished the quest {0}'.format(self.questname))
                     self.currentquest[5] = True
                     self.finish_quest()
@@ -97,7 +96,9 @@ class Quest:
             for i in range(len(name)):
                 if details[i][3] == False:
                     avliable.append(name[i])
-            print(avliable)
+            print('---currently available quests---')
+            for i in range(len(avliable)):
+                print('{0}:{1}'.format(avliable[i],details[i][6]))
             questogofor = input('which quest do you want to embark on')
             if questogofor in avliable:
                 self.set_quest(questogofor,details[name.index(questogofor)])
@@ -115,9 +116,9 @@ class Battle:
         self.enermy_damage = 0
         self.enermy_xp = 0
         self.numdefeted = 0
-    def encounter(self):
+    def encounter(self,searched):
         find = self.encounters[M.location] + random.random()
-        if find >= 1:
+        if find >= 1 or searched == True:
             oppnent = random.choice(list(self.enermy[M.location]))
             stats =self.enermy[M.location][oppnent]
             self.enermy_hp = stats[0]
@@ -193,8 +194,8 @@ class Battle:
             M.start(),
         elif hp != 0:
             stats[7] += 1
+            print(stats[7])
             self.enermy[M.location][oppnent]=stats
-            print(self.enermy[M.location][oppnent])
             C.xp_gain(self.enermy_xp)
         else:
             print('you died')
@@ -212,12 +213,14 @@ class Main:
             self.start_up = False
         go = True
         while go:
-            action = input('what do you want to do: 1:move 2:look for quests')
+            action = input('what do you want to do: 1:move 2:look for quests 3:hunt for enermys')
             Q.check_quest()
             if action == '1':
                 self.moving()
             elif action == '2':
                 Q.start_quest()
+            elif action =='3':
+                B.encounter(True)
 
     def moving(self):
             choices = L.move(self.location)
@@ -247,8 +250,6 @@ class Main:
                             M.movement(move)
                         else:
                             print('cant get there')
-                elif L.unlocked[(L.map.index(self.location))+1] != 1 and L.different_provence == True:
-                    print('cant get there')
                 else:
                     L.precise_location = move
                     M.movement(move)
@@ -271,9 +272,9 @@ class Charaters:
          self.hp = 300
          self.type_ = T.type_ele(5)
          self.damage= 20
-         self.next_xp = 20
+         self.next_xp = 30
          self.magic = 3
-         self.levelup_mod = [1.5,1.7,1.3,1.1]
+         self.levelup_mod = [1.05,1.07,1.03,1.01]
          self.level = 1
          self.magic_amount = 3
          self.welcome = ['hello there I am glad to see you','how long will it take for you to get to the dark clouds?']
@@ -283,18 +284,18 @@ class Charaters:
      def stats(self):
          return self.hp,self.type_,self.damage,self.welcome,self.next_xp,self.magic,self.levelup_mod,self.magic_amount
      def xp_gain(self,xp_gained):
+         xp_needed = self.next_xp
          while xp_gained != 0 and xp_gained >= 0:
-             xp_needed = self.next_xp
              xp_gained = xp_gained - xp_needed
-             C.level_up()
-         self.next_xp = xp_needed
-
+             if xp_gained != 0 and xp_gained >= 0:
+                 C.level_up()
+         self.next_xp = xp_needed + xp_gained
      def level_up(self):
          self.hp *= self.levelup_mod[0]
          self.damage *= self.levelup_mod[1]
          self.magic *= self.levelup_mod[2]
          self.magic_amount *= self.levelup_mod[3]
-         self.next_xp *= 1.5
+         self.next_xp *= 2
          self.level += 1
          print('you leved up to level {0}'.format(self.level))
 class type_s():
@@ -315,7 +316,5 @@ L = Locations()
 B = Battle()
 Q = Quest()
 M.start()
-
-
 
 

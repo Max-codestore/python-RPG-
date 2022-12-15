@@ -10,8 +10,8 @@ class Dungouns:
 
 class Locations:
     def __init__(self):
-        self.map =['plains',['east plain','north plain','south plain','central plain','west plain'],'eastern desert',['oasis','small northern town','central desert fortress','hunted wasteland'],'town','deep cave','dark clouds']
-        self.precise_location = 'east plain'
+        self.map =['plains',['east_plain','north_plain','south_plain','central_plain','west_plain'],'eastern desert',['oasis','small northern town','central desert fortress','hunted wasteland'],'town','deep cave','dark clouds']
+        self.precise_location = 'east_plain'
         self.start = True
         self.unlocked = [1,0,0,0,0]
         self.different_provence = False
@@ -20,8 +20,8 @@ class Locations:
         return self.map[where+1]
     def move(self,local):
         self.different_provence = False
-        if self.start == False:
-            B.encounter(False)
+      #  if self.start == False:
+      #      B.encounter(False)
         self.start = False
         where_to_go_from_here = self.loc(local).index(self.precise_location)
         if where_to_go_from_here == 0:
@@ -53,7 +53,7 @@ class Locations:
 
 class Quest:
     def __init__(self):
-        self.questlist = {'central plain':['impressive progress',['place','west plain',40,False,False,False,'move to the west plain'],'help needed',['monster',120,False,False,False,'plains','kill 4 thiefs','thief',4]]}
+        self.questlist = {'central plain':['impressive progress',['place','west plain',40,False,False,False,'move to the west plain'],'help needed',['monster',120,False,False,False,'plains','kill 4 thiefs','thief',4]],'west plain':['a new world',['level',10,100,False,True,False,'des']]}
         self.questname =''
         self.currentquest = []
         self.quest_set = False
@@ -68,6 +68,9 @@ class Quest:
         C.xp_gain(self.currentquest[2])
         self.currentquest[3] = True
         self.questlist[self.currentquestlocaton][self.questlist[self.currentquestlocaton].index(self.currentquest)] = self.currentquest
+        if self.currentquest[4] == True:
+            findlocatoion = L.map.index(M.location)
+            L.unlocked[findlocatoion+1] = 1
     def update_quest(self):
         self.stuff=3
     def check_quest(self):
@@ -82,6 +85,12 @@ class Quest:
                     print('you finished the quest {0}'.format(self.questname))
                     self.currentquest[5] = True
                     self.finish_quest()
+            elif self.currentquest[0]=='level':
+                if C.stats()[8] == self.currentquest[1]:
+                    print('you finished the quest {0}'.format(self.questname))
+                    self.currentquest[5] = True
+                    self.finish_quest()
+
     def start_quest(self):
         try:
             name = []
@@ -110,7 +119,7 @@ class Quest:
 class Battle:
     def __init__(self):
         self.enermy = {'plains':{'agressive plant':[200,5,T.type_ele(2),20,1,4,1,0],'thief':[300,2,T.type_ele(2),30,4,1,1,0]},'eastern desert':{'awakened sand':[150,10,T.type_ele(2),40,3,7,10,0]}}
-        self.encounters = {'plains': 0.2,'eastern desert': 0.4,'dark clouds':0.6,'town': 0.3,'deep cave':0.5}
+        self.encounters = {'plains': 0.02,'eastern desert': 0.04,'dark clouds':0.06,'town': 0.03,'deep cave':0.05}
         self.enermy_hp = 0
         self.enermy_type_ = 0
         self.enermy_damage = 0
@@ -129,7 +138,8 @@ class Battle:
             self.magic = stats[5]
             self.magic_count = stats[6]
             print('you have encountered a enermy {0}'.format(oppnent))
-            B.fight(stats,oppnent)
+            return True,stats
+        return False,[]
     def fight(self,stats,oppnent):
         hp = C.stats()[0]
         p_type_ = C.stats()[1]
@@ -282,7 +292,7 @@ class Charaters:
          if self.unlocked == 1:
              random.choice(self.welcome)
      def stats(self):
-         return self.hp,self.type_,self.damage,self.welcome,self.next_xp,self.magic,self.levelup_mod,self.magic_amount
+         return self.hp,self.type_,self.damage,self.welcome,self.next_xp,self.magic,self.levelup_mod,self.magic_amount,self.level
      def xp_gain(self,xp_gained):
          xp_needed = self.next_xp
          while xp_gained != 0 and xp_gained >= 0:
@@ -290,6 +300,7 @@ class Charaters:
              if xp_gained != 0 and xp_gained >= 0:
                  C.level_up()
          self.next_xp = xp_needed + xp_gained
+         print(self.next_xp)
      def level_up(self):
          self.hp *= self.levelup_mod[0]
          self.damage *= self.levelup_mod[1]
@@ -315,6 +326,5 @@ M = Main()
 L = Locations()
 B = Battle()
 Q = Quest()
-M.start()
 
 

@@ -7,10 +7,11 @@ SURFACE_COLOR = (167, 255, 100)
 WIDTH = 500
 HEIGHT = 500
 current="images/east_plain.png"
+previous =''
 #((main.L.loc(main.M.location).index(main.L.precise_location))) + 2 ==len(main.L.loc(main.M.location)) and  main.L.unlocked[(main.L.map.index(main.M.location)) + 1] != 1:
 #checking if the area is enabled or not
 def movement(direction,nx,ny,move):
-    global current,encounter
+    global current,encounter,previous
     x=playerCar.rect.x
     y=playerCar.rect.y
     z=main.L.move(main.M.location)
@@ -45,15 +46,29 @@ def movement(direction,nx,ny,move):
         playerCar.rect.x = nx
         main.L.precise_location = z[0]
     elif encounter[0] == True:
+        previous = current
         bg=('images/battle_bg.png')
         current=bg
     else:
         print(current)
         return current
     return bg
+def hpbar(current,max,length):
+    hpratio = length/max
+    print(current)
+    x = current//hpratio
+    pygame.draw.rect(screen,(255,0,0),(10,10,x,25))
+#    pygame.draw.rect(screen,(255,255,255),(10,10,length,25))
 def battle():
     global screen,current,encounter
     all_sprites_list.remove(playerCar)
+    hpbar(encounter[1][0],encounter[1][0],1000)
+    if keys[pygame.K_LEFT]:
+        encounter[1][0] -= 30
+    print(encounter[0])
+    if encounter[1][0] < 0:
+        x = list(encounter)
+        x[0] = False
 
 
 def map_collision(current,dire):
@@ -169,11 +184,9 @@ class Sprite_NPC(pygame.sprite.Sprite):
 class Sprite_enermy(pygame.sprite.Sprite):
     def __init__(self, enermy):
         super().__init__()
+        global current
         spite = pygame.image.load('images/enermy.png')
-        all_sprites_list.add(spite)
-    #def collide(self):
-        #if playerCar.rect.x == self.rect.x and playerCar.rect.y == self.rect.y:
-            #print('r')
+        screen.blit(spite,(250,250))
 class telaport(pygame.sprite.Sprite):
     def __init__(self, color, height, width,x,y,forward,posx,posy):
         super().__init__()
@@ -234,8 +247,6 @@ playerCar.rect.x = 200
 playerCar.rect.y = 300
 one_NPC = Sprite_NPC((0,0,255),30,20,'help needed')
 one_NPC.get_quest()
-enermy = Sprite_enermy('enermy')
-all_sprites_list.add(enermy)
 all_sprites_list.add(playerCar)
 #all_sprites_list.add(one_NPC)
 exit = True
@@ -253,29 +264,31 @@ while exit:
                 exit = False
 
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
-        playerCar.moveLeft(10)
-        resentdirection = 'x-'
-        encounter=main.B.encounter(False)
-    if keys[pygame.K_RIGHT]:
-        playerCar.moveRight(10)
-        resentdirection = 'x'
-        encounter=main.B.encounter(False)
-    if keys[pygame.K_DOWN]:
-        playerCar.moveForward(10)
-        resentdirection = 'y'
-        encounter=main.B.encounter(False)
-    if keys[pygame.K_UP]:
-        playerCar.moveBack(10)
-        resentdirection = '-y'
-        encounter = main.B.encounter(False)
-    if encounter[0] == True:
-        battle()
+    if current != 'images/battle_bg.png':
+        if keys[pygame.K_LEFT]:
+            playerCar.moveLeft(10)
+            resentdirection = 'x-'
+            encounter=main.B.encounter(False)
+        if keys[pygame.K_RIGHT]:
+            playerCar.moveRight(10)
+            resentdirection = 'x'
+            encounter=main.B.encounter(False)
+        if keys[pygame.K_DOWN]:
+            playerCar.moveForward(10)
+            resentdirection = 'y'
+            encounter=main.B.encounter(False)
+        if keys[pygame.K_UP]:
+            playerCar.moveBack(10)
+            resentdirection = '-y'
+            encounter = main.B.encounter(False)
     imp = pygame.image.load(movement('', 0, 0, False))
     mouse = pygame.mouse.get_pos()
     map_collision(current,resentdirection)
     all_sprites_list.update()
     screen.blit(imp, (0, 0))
+    if encounter[0] == True:
+        enermy = Sprite_enermy('theif')
+        battle()
     one_NPC.collide()
 #    print('x{0}'.format(playerCar.rect.x))
 #    print('y{0}'.format(playerCar.rect.y))

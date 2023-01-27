@@ -69,6 +69,22 @@ def movement(direction,nx,ny,move):
 class Battle:#finish class
     def __init__(self):
         self.x, self.y = pygame.mouse.get_pos()
+        self.run_texture = 0
+        self.runbutton = 0
+        self.fight_texture = 0
+        self.fight_button = 0
+        self.command = ''
+        self.fight_mode = False
+        self.magic_button = 0
+        self.magic_texture = 0
+        self.fight_command = ''
+        self.player_hp = main.C.hp
+        self.enermy_turn = False
+        self.last = ''
+        self.held = False
+        self.magic_count = 0
+        print('s')
+    def start_ui(self):
         self.run_texture = Sprite_button_image('images/Run.png',374,381)
         self.runbutton = Sprite_button((0,23,0),35,94,'run',374,381)
         barriers.add(self.runbutton)
@@ -82,14 +98,74 @@ class Battle:#finish class
     def battle(self):
         global screen,current,encounter,start,starthp,action
         run = False
+        if self.command == '':
+            self.last = ''
+            self.start_ui()
         all_sprites_list.remove(playerCar)
-        b=self.fight_button.collide()
-        if b == '':
-            b=self.runbutton.collide()
-        if b == 'fight':
-            self.fight_UI(action,b)
-        if b == 'run':
-            run = main.B.run()
+        if self.fight_mode == False:
+            self.command=self.fight_button.collide()
+            if self.command == '':
+                self.command=self.runbutton.collide()
+            if self.command != 'run' and self.command != '':
+                self.magic_count += 1
+                self.fight_UI(action,self.command)
+                time.sleep(0.3)
+            if self.command == 'run':
+                run = main.B.run()
+        else:
+            if self.held == True:
+                self.held = False
+                time.sleep(0.1)
+                return encounter
+            self.fight_UI(action,self.command)
+            self.fight_command = self.fight_button.collide()
+            if self.fight_command == '':
+                self.fight_command = self.runbutton.collide()
+            if self.fight_command == '':
+                self.fight_command = self.magic_button.collide()
+            if self.fight_command == 'Attack' and self.last != self.fight_command:
+                encounter[1][0] = main.B.attack(encounter[1][0],main.C.damage,main.T.crit(main.C.type_,encounter[1][2]),'you')
+                self.fight_mode = False
+                self.enermy_turn = True
+                self.last = self.fight_command
+                time.sleep(0.1)
+            if self.fight_command == 'Attack' and self.last == self.fight_command:
+                    self.enermy_turn = True
+                    self.fight_mode = False
+                    self.held = True
+                    self.command = ''
+            if self.fight_command == 'heal'and self.last != self.fight_command:
+                self.player_hp=main.B.heal(self.player_hp,self.magic_count, main.C.magic,'you')
+                self.fight_mode = False
+                self.enermy_turn = True
+                time.sleep(0.1)
+                self.last = self.fight_command
+            if self.fight_command == 'heal' and self.last == self.fight_command:
+                    self.enermy_turn = True
+                    self.fight_mode = False
+                    self.held = True
+                    self.command = ''
+            if self.fight_command == 'magic'and self.last != self.fight_command:
+                encounter[1][0]=main.B.magic_damage(main.B.magic_count, self.magic_count, encounter[1][0], 'you')
+                self.fight_mode = False
+                self.enermy_turn = True
+                self.last = self.fight_command
+                print(self.enermy_turn)
+                time.sleep(0.1)
+            if self.fight_command == 'magic' and self.last == self.fight_command:
+                    self.enermy_turn = True
+                    self.fight_mode = False
+                    self.held = False
+                    self.command = ''
+            print(self.enermy_turn)
+            if self.enermy_turn == True:
+                damage = main.B.AI_turn(main.C.stats()[0],main.C.stats()[1])
+                print(damage)
+                if damage[0] == 'attack':
+                    self.player_hp -= damage[1]
+                self.enermy_turn = False
+                if damage[0]== 'heal':
+                    encounter[1][0] += damage[1]
         if start == True:
             starthp = encounter[1][0]
         self.hpbar(encounter[1][0],starthp,1000)
@@ -101,21 +177,17 @@ class Battle:#finish class
             return x
         return encounter
     def fight_UI(self,action,buttons):
-        self.attack_texture = Sprite_button_image('images/Attack.png',374,381)
-        self.attack_button = Sprite_button((0,23,0),35,94,'Attack',374,381)
-        barriers.add(self.attack_button)
-        self.heal_texture = Sprite_button_image('images/Heal.png',74,381)
-        self.heal_button = Sprite_button((0,0,0),41,97,'heal',74,381)
-        barriers.add(self.heal_button)
+        self.run_texture = Sprite_button_image('images/Attack.png',374,381)
+        self.runbutton = Sprite_button((0,23,0),35,94,'Attack',374,381)
+        barriers.add(self.runbutton)
+        self.fight_texture = Sprite_button_image('images/Heal.png',74,381)
+        self.fight_button = Sprite_button((0,0,0),41,97,'heal',74,381)
+        barriers.add(self.fight_button)
         self.magic_texture = Sprite_button_image('images/magic.png',220,381)
         self.magic_button = Sprite_button((0,0,0),41,97,'magic',220,381)
         barriers.add(self.magic_button)
+        self.fight_mode = True
         return True
-    def battle_UI(sef,pressed):
-        print('s')
- #       if pressed != True:
-
-#            return runbutton,fight_button
 
 def map_collision(current,dire):
     if current == 'images/east_plain.png':
@@ -246,7 +318,6 @@ class Sprite_button(pygame.sprite.Sprite):
         self.rect.y = y
     def collide(self):
         if (self.mouse[0] >= self.rect.x and self.mouse[0] <= self.rect.x+self.width) and (self.mouse[1] >= self.rect.y and self.mouse[1] <= self.rect.y+self.width) and pygame.mouse.get_pressed()[0] == True:
-            print(self.function)
             return self.function
         return ''
 class Sprite_enermy(pygame.sprite.Sprite):
@@ -331,7 +402,8 @@ imp=''
 start = True
 starthp=3
 action = ''
-
+fiorrun = False
+B = Battle()
 while exit:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -376,7 +448,6 @@ while exit:
     screen.blit(imp, (0, 0))
     if encounter[0] == True:
         enermy = Sprite_enermy('theif')
-        B = Battle()
         encounter = B.battle()
         start = False
         one_NPC.collide()

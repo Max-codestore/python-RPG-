@@ -11,6 +11,10 @@ previous =''
 now = False
 old = ''
 first=False
+def typing_(string):#later plans for cleaner text
+    lst = []
+    for letter in string:
+        lst.append(letter)
 #((main.L.loc(main.M.location).index(main.L.precise_location))) + 2 ==len(main.L.loc(main.M.location)) and  main.L.unlocked[(main.L.map.index(main.M.location)) + 1] != 1:
 #checking if the area is enabled or not
 def movement(direction,nx,ny,move):
@@ -83,7 +87,9 @@ class Battle:#finish class
         self.last = ''
         self.held = False
         self.magic_count = 0
-        print('s')
+        self.font = pygame.font.SysFont('Comic Sans MS',24)
+        self.img3 = self.font.render('', True, (224, 3, 23))
+        self.img5 = self.font.render('',True,(0,0,255))
     def start_ui(self):
         self.run_texture = Sprite_button_image('images/Run.png',374,381)
         self.runbutton = Sprite_button((0,23,0),35,94,'run',374,381)
@@ -91,13 +97,20 @@ class Battle:#finish class
         self.fight_texture = Sprite_button_image('images/Fight.png',74,381)
         self.fight_button = Sprite_button((0,0,0),41,97,'fight',74,381)
         barriers.add(self.fight_button)
-    def hpbar(self,current,max,length):
+    def hpbar(self,current,max,length,xx,y):
         hpratio = length/max
         x = current//hpratio
-        pygame.draw.rect(screen,(255,0,0),(10,10,x,25))
+        pygame.draw.rect(screen,(255,0,0),(xx,y,x,25))
     def battle(self):
         global screen,current,encounter,start,starthp,action
         run = False
+        img4 = self.font.render('^ player HP ^', True, (224, 3, 23))
+        screen.blit(img4, (300, 30))
+        img = self.font.render('^ enemy HP ^', True, (224,3,23))
+        screen.blit(img, (20, 40))
+        img2 = self.font.render(f'magic count:{self.magic_count}', True, (224,3,23))
+        screen.blit(img2, (20, 60))
+        screen.blit(self.img3, (20, 300))
         if self.command == '':
             self.last = ''
             self.start_ui()
@@ -124,20 +137,30 @@ class Battle:#finish class
             if self.fight_command == '':
                 self.fight_command = self.magic_button.collide()
             if self.fight_command == 'Attack' and self.last != self.fight_command:
+                pre = encounter[1][0]
                 encounter[1][0] = main.B.attack(encounter[1][0],main.C.damage,main.T.crit(main.C.type_,encounter[1][2]),'you')
+                self.img3 = self.font.render(f'you did {pre - encounter[1][0]} phyical damage', True, (224, 3, 23))
+                screen.blit(self.img3, (20, 300))
                 self.fight_mode = False
                 self.enermy_turn = True
                 self.last = self.fight_command
-                time.sleep(0.1)
+                time.sleep(1)
             if self.fight_command == 'Attack' and self.last == self.fight_command:
                     self.enermy_turn = True
                     self.fight_mode = False
                     self.held = True
                     self.command = ''
             if self.fight_command == 'heal'and self.last != self.fight_command:
+                pre = self.player_hp
                 self.player_hp=main.B.heal(self.player_hp,self.magic_count, main.C.magic,'you')
+                self.img3 = self.font.render(f'you healed {self.player_hp- pre} hp', True, (224, 3, 23))
                 self.fight_mode = False
                 self.enermy_turn = True
+                if self.magic_count != 0 and self.magic_count >= 2:
+                    self.magic_count -= 2
+                else:
+                    self.img3 = self.font.render('couldnt heal due to lacking 2 magic', True,(224, 3, 23))
+                    self.magic_count = self.magic_count
                 time.sleep(0.1)
                 self.last = self.fight_command
             if self.fight_command == 'heal' and self.last == self.fight_command:
@@ -146,30 +169,62 @@ class Battle:#finish class
                     self.held = True
                     self.command = ''
             if self.fight_command == 'magic'and self.last != self.fight_command:
+                pre = encounter[1][0]
                 encounter[1][0]=main.B.magic_damage(main.B.magic_count, self.magic_count, encounter[1][0], 'you')
+                self.img3 = self.font.render(f'you did {pre - encounter[1][0]} magic damage', True, (224, 3, 23))
                 self.fight_mode = False
                 self.enermy_turn = True
                 self.last = self.fight_command
-                print(self.enermy_turn)
+                if self.magic_count !=0 and self.magic_count >= 3:
+                    self.magic_count -= 3
+                else:
+                    self.img3 = self.font.render('couldnt use a magic attack due to lacking 3 magic', True, (224, 3, 23))
+                    self.magic_count = self.magic_count
                 time.sleep(0.1)
             if self.fight_command == 'magic' and self.last == self.fight_command:
                     self.enermy_turn = True
                     self.fight_mode = False
                     self.held = False
                     self.command = ''
-            print(self.enermy_turn)
             if self.enermy_turn == True:
-                damage = main.B.AI_turn(main.C.stats()[0],main.C.stats()[1])
-                print(damage)
+                damage = main.B.AI_turn(self.player_hp,main.C.stats()[1],encounter[1][0])
                 if damage[0] == 'attack':
-                    self.player_hp -= damage[1]
+                    pre = self.player_hp
+                    self.player_hp = damage[1]
+                    self.img5 = self.font.render(f'enermy did {pre-damage[1]}damage', True, (0, 0, 225))
                 self.enermy_turn = False
                 if damage[0]== 'heal':
-                    encounter[1][0] += damage[1]
+                    pre = encounter[1][0]
+                    encounter[1][0] = damage[1]
+                    self.img5 = self.font.render(f'enermy healed {damage[1]-pre} hp', True, (0, 0, 225))
+                if damage[0] == 'run':
+                    if damage[1] == True:
+                        self.img3 = self.font.render('', True, (224, 3, 23))
+                        screen.blit(self.img3, (20, 300))
+                        self.img5= self.font.render('enermy ran from you', True, (0, 0, 225))
+                        screen.blit(self.img5,(20,340))
+                        pygame.display.flip()
+                        run = True
+                        time.sleep(2)
+                    else:
+                        self.img5 = self.font.render('enermy attempted to run but failed', True, (0, 0, 225))
+        screen.blit(self.img5, (20, 340))
         if start == True:
             starthp = encounter[1][0]
-        self.hpbar(encounter[1][0],starthp,1000)
+        self.hpbar(encounter[1][0],starthp,1000,10,10)
+        self.hpbar(self.player_hp, main.C.hp, 1000, 300, 10)
+        if self.player_hp == 0 and not self.player_hp <= 0:
+            print('true')
         if encounter[1][0] <= 0 or run == True:
+            if encounter[1][0] <= 0:
+                main.C.xp_gain(encounter[1][3])
+                self.img3 = self.font.render('', True, (224, 3, 23))
+                screen.blit(self.img3, (20, 300))
+                self.img5 = self.font.render(f'you gained {encounter[1][3]} XP', True, (0, 255, 0))
+                screen.blit(self.img5, (20, 340))
+                pygame.display.flip()
+                time.sleep(2)
+                self.img5 = self.font.render('', True, (0, 0, 255))
             x = list(encounter)
             x[0] = False
             x[1][0] = starthp
@@ -247,6 +302,9 @@ def map_collision(current,dire):
         tela7 = telaport((0,0,0),10,500,0,0,'forward',playerCar.rect.x,470)
         barriers.add(tela7)
         tela7.collide()
+        steve = Sprite_NPC((7,34,9),10,30,'impressive progress')
+        quest_text = steve.collide()
+        all_sprites_list.add(steve)
 # Object class
 class Sprite(pygame.sprite.Sprite):
     def __init__(self, color, height, width):
@@ -294,10 +352,11 @@ class Sprite_NPC(pygame.sprite.Sprite):
         self.rect.y=200
         self.quest = questgive
     def get_quest(self):
-        print(self.quest)
+        return self.quest
     def collide(self):
         if playerCar.rect.x == self.rect.x and playerCar.rect.y == self.rect.y:
             print(self.quest)
+            return self.get_quest()
 
 class Sprite_button(pygame.sprite.Sprite):
     def __init__(self, color, height, width,functons,x,y):

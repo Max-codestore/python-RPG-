@@ -1,6 +1,7 @@
 import random
 import pygame
-import main,time
+import main,time,mutagen
+from mutagen.wave import WAVE
 # Global Variables
 COLOR = (255, 100, 98)
 SURFACE_COLOR = (167, 255, 100)
@@ -11,6 +12,11 @@ previous =''
 now = False
 old = ''
 first=False
+
+
+
+
+
 def typing_(string):#later plans for cleaner text
     lst = []
     for letter in string:
@@ -57,7 +63,7 @@ def movement(direction,nx,ny,move):
             old = current
             previous = current
             first = False
-        bg=('images/battle_bg.png')
+        bg=(f'images/battle_bg_{main.M.location}.png') 
         current=bg
         now = True
     elif now == True and encounter[0] == False:
@@ -67,7 +73,6 @@ def movement(direction,nx,ny,move):
         return current
     else:
         first = True
-        print(current)
         return current
     return bg
 class Battle:#finish class
@@ -98,12 +103,16 @@ class Battle:#finish class
         self.fight_button = Sprite_button((0,0,0),41,97,'fight',74,381)
         barriers.add(self.fight_button)
     def hpbar(self,current,max,length,xx,y):
-        hpratio = length/max
-        x = current//hpratio
-        pygame.draw.rect(screen,(255,0,0),(xx,y,x,25))
+        try:
+            hpratio = length/max
+            x = current//hpratio
+            pygame.draw.rect(screen,(255,0,0),(xx,y,x,25))
+        except:
+            return False
     def battle(self):
         global screen,current,encounter,start,starthp,action
         run = False
+        er = False
         img4 = self.font.render('^ player HP ^', True, (224, 3, 23))
         screen.blit(img4, (300, 30))
         img = self.font.render('^ enemy HP ^', True, (224,3,23))
@@ -125,6 +134,11 @@ class Battle:#finish class
                 time.sleep(0.3)
             if self.command == 'run':
                 run = main.B.run()
+                if run == False:
+                    self.img5 = self.font.render('you attempted to run but it failed', True, (0, 255, 0))
+                    screen.blit(self.img5, (20, 340))
+                    pygame.display.flip()
+                    time.sleep(2)
         else:
             if self.held == True:
                 self.held = False
@@ -206,16 +220,25 @@ class Battle:#finish class
                         pygame.display.flip()
                         run = True
                         time.sleep(2)
+                        er= True
                     else:
                         self.img5 = self.font.render('enermy attempted to run but failed', True, (0, 0, 225))
         screen.blit(self.img5, (20, 340))
         if start == True:
             starthp = encounter[1][0]
+            start = False
         self.hpbar(encounter[1][0],starthp,1000,10,10)
         self.hpbar(self.player_hp, main.C.hp, 1000, 300, 10)
-        if self.player_hp == 0 and not self.player_hp <= 0:
-            print('true')
         if encounter[1][0] <= 0 or run == True:
+            if run == True and er == False:
+                self.img5 = self.font.render('you ran from the enermy', True, (0, 255, 0))
+                screen.blit(self.img5, (20, 340))
+                pygame.display.flip()
+                time.sleep(2)
+                x = list(encounter)
+                x[0] = False
+                x[1][0] = starthp
+                all_sprites_list.add(playerCar)
             if encounter[1][0] <= 0:
                 main.C.xp_gain(encounter[1][3])
                 self.img3 = self.font.render('', True, (224, 3, 23))
@@ -228,6 +251,7 @@ class Battle:#finish class
             x = list(encounter)
             x[0] = False
             x[1][0] = starthp
+            x[1][7] += 1
             all_sprites_list.add(playerCar)
             return x
         return encounter
@@ -302,9 +326,40 @@ def map_collision(current,dire):
         tela7 = telaport((0,0,0),10,500,0,0,'forward',playerCar.rect.x,470)
         barriers.add(tela7)
         tela7.collide()
-        steve = Sprite_NPC((7,34,9),10,30,'impressive progress')
-        quest_text = steve.collide()
-        all_sprites_list.add(steve)
+    quest = Q.activate(current)
+    return quest
+class Quests:
+    def __init__(self):
+        self.one_NPC = Sprite_NPC((0, 0, 255), 30, 20, 'help needed',100,200)
+        self.steve = Sprite_NPC((7, 34, 9), 30, 20, 'impressive progress',290,150)
+    def activate(self,location):
+        quest = ''
+        if location == 'images/central_plain.png':
+            all_sprites_list.add(self.one_NPC)
+            quest=self.one_NPC.collide()
+            if quest != '' and quest != None:
+                quest = Q.quest_handle(quest)
+                return quest
+            all_sprites_list.add(self.steve)
+            quest=self.steve.collide()
+            if quest != '' and quest != None:
+                quest = Q.quest_handle(quest)
+                return quest
+        else:
+            self.remove_npc()
+    def quest_handle(self,quest):
+        global quest_set
+        x = main.Q.questlist[main.L.precise_location]
+        stats=(x[x.index(quest)+1])
+        quest_set = True
+        return stats,quest
+    def set(self,quest):
+        x = main.Q.questlist[main.L.precise_location]
+        stats=(x[x.index(quest)+1])
+        main.Q.set_quest(quest,stats)
+    def remove_npc(self):
+        all_sprites_list.remove(self.one_NPC)
+        all_sprites_list.remove(self.steve)
 # Object class
 class Sprite(pygame.sprite.Sprite):
     def __init__(self, color, height, width):
@@ -336,7 +391,7 @@ class Sprite(pygame.sprite.Sprite):
             self.rect.y -= self.speed + speed
 pygame.init()
 class Sprite_NPC(pygame.sprite.Sprite):
-    def __init__(self, color, height, width,questgive):
+    def __init__(self, color, height, width,questgive,x,y):
         super().__init__()
 
         self.image = pygame.Surface([width, height])
@@ -348,15 +403,14 @@ class Sprite_NPC(pygame.sprite.Sprite):
                          pygame.Rect(0, 0, width, height))
 
         self.rect = self.image.get_rect()
-        self.rect.x= 100
-        self.rect.y=200
+        self.rect.x= x
+        self.rect.y=y
         self.quest = questgive
     def get_quest(self):
         return self.quest
     def collide(self):
-        if playerCar.rect.x == self.rect.x and playerCar.rect.y == self.rect.y:
-            print(self.quest)
-            return self.get_quest()
+        if playerCar.rect.colliderect(self.rect) == True:
+            return self.quest
 
 class Sprite_button(pygame.sprite.Sprite):
     def __init__(self, color, height, width,functons,x,y):
@@ -382,7 +436,7 @@ class Sprite_button(pygame.sprite.Sprite):
 class Sprite_enermy(pygame.sprite.Sprite):
     def __init__(self, enermy):
         super().__init__()
-        spite = pygame.image.load('images/enermy.png')
+        spite = pygame.image.load(f'images/{enermy}.png')
         screen.blit(spite,(250,250))
 class Sprite_button_image(pygame.sprite.Sprite):
     def __init__(self, button_image,x,y):
@@ -411,6 +465,20 @@ class telaport(pygame.sprite.Sprite):
     def collide(self):
         if playerCar.rect.colliderect(self.rect) == True:
             movement(self.forward,self.posx,self.posy,True)
+
+def text_speech(text : str,color,background,x,y, bold : bool):
+    SCREEN = width, height = 900, 600
+    font = pygame.font.SysFont('Comic Sans MS', 24)
+    font.set_bold(bold)
+    textSurf = font.render(text, True, color).convert_alpha()
+    textSize = textSurf.get_size()
+    bubbleSurf = pygame.Surface((textSize[0]*2., textSize[1]*2))
+    bubbleRect = bubbleSurf.get_rect()
+    bubbleSurf.fill(background)
+    bubbleSurf.blit(textSurf, textSurf.get_rect(center = bubbleRect.center))
+    bubbleRect.center = (x,y)
+    screen.blit(bubbleSurf, bubbleRect)
+
 class World_collide(pygame.sprite.Sprite):
     def __init__(self, color, height, width,x,y):
         super().__init__()
@@ -437,21 +505,26 @@ class World_collide(pygame.sprite.Sprite):
             else:
                 playerCar.rect.y -= 20
 
+def music():
+    global previous_loc
+    current_loc=main.M.location
+    if current_loc != previous_loc:
+        bgm = 'music/{0}.wav'.format(main.M.location)
+        pygame.mixer.music.load(bgm)
+        pygame.mixer.music.play(-1)
+    previous_loc=main.M.location
 RED = (255, 0, 0)
-
 size = (WIDTH, HEIGHT)
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption("PYRPG")
-
+previous_loc = ''
 all_sprites_list = pygame.sprite.Group()
 barriers = pygame.sprite.Group
 playerCar = Sprite(RED, 30, 20)
 playerCar.rect.x = 200
 playerCar.rect.y = 300
-one_NPC = Sprite_NPC((0,0,255),30,20,'help needed')
-one_NPC.get_quest()
+Q= Quests()
 all_sprites_list.add(playerCar)
-#all_sprites_list.add(one_NPC)
 exit = True
 clock = pygame.time.Clock()
 screen2 = False
@@ -462,17 +535,24 @@ start = True
 starthp=3
 action = ''
 fiorrun = False
+quest_set = False
+name = ''
+xp = 0
+hold = False
+quest_completed = False
 B = Battle()
+main.C.xp_gain(700000000000000)
+timers=0
 while exit:
+    timers += 1
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             exit = False
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_x:
                 exit = False
-
     keys = pygame.key.get_pressed()
-    if current != 'images/battle_bg.png':
+    if current != f'images/battle_bg_{main.M.location}.png' and quest_set == False:
         if keys[pygame.K_LEFT]:
             playerCar.moveLeft(10)
             resentdirection = 'x-'
@@ -501,23 +581,83 @@ while exit:
                 imp = pygame.image.load(movement('', 0, 0, False))
             else:
                 time.sleep(2)
+        if keys[pygame.K_l]:
+            text_speech(f'level {main.C.level}', (255, 255, 255), (0, 128, 0), WIDTH / 2, 400, False)
+            all_sprites_list.draw(screen)
+            pygame.display.flip()
+            time.sleep(2)
     imp = pygame.image.load(movement('', 0, 0, False))
-    map_collision(current,resentdirection)
+    quest = map_collision(current,resentdirection)
+    music()
     all_sprites_list.update()
     screen.blit(imp, (0, 0))
     if encounter[0] == True:
-        enermy = Sprite_enermy('theif')
+        Q.remove_npc()
+        enermy = Sprite_enermy(encounter[2])
         encounter = B.battle()
         start = False
-        one_NPC.collide()
         #    print('x{0}'.format(playerCar.rect.x))
         #    print('y{0}'.format(playerCar.rect.y))
         all_sprites_list.draw(screen)
         pygame.display.flip()
         clock.tick(60)
+        just_battled = True
+    if encounter[0] == False:
+        font = pygame.font.SysFont('Comic Sans MS', 24)
+        img5 = font.render(f'current quest: {main.Q.questname}', True, (224, 3, 23))
+        screen.blit(img5, (20, 10))
+    if quest_set == True:
+        if quest[0][3] == True:
+            text_speech('quest already completed', (255, 255, 255), (0, 128, 0), WIDTH / 2, 400, False)
+            all_sprites_list.draw(screen)
+            pygame.display.flip()
+            time.sleep(1)
+            quest_set = False
+            playerCar.rect.y -= 10
+        if main.Q.questname == quest[1]:
+            text_speech('quest already taken', (255, 255, 255), (0, 128, 0), WIDTH / 2, 400, False)
+            all_sprites_list.draw(screen)
+            pygame.display.flip()
+            time.sleep(1)
+            quest_set = False
+            playerCar.rect.y -= 10
+        else:
+            text_speech(f'{quest[1]}:{quest[0][6]}', (255, 255, 255), (0, 128, 0), WIDTH/2, 400, False)
+            accept_texture = Sprite_button_image('images/Accept.png',374,411)
+            acceptbutton = Sprite_button((0,23,0),35,94,'accept',374,411)
+            reject_texture = Sprite_button_image('images/reject.png',74,411)
+            rejectbutton = Sprite_button((0,0,0),41,97,'reject',74,411)
+            y=acceptbutton.collide()
+            x=rejectbutton.collide()
+            if y != '':
+                playerCar.rect.y -= 10
+                Q.set(quest[1])
+                quest_set = False
+            if x != '':
+                playerCar.rect.y -= 10
+                quest_set = False
+        pygame.display.flip()
     else:
-        start=True
-        one_NPC.collide()
+        x=main.Q.check_quest()
+        if quest_completed == True:
+            text_speech(f'quest {name} completed, {xp} xp gained', (255, 255, 255),(0, 128, 0), WIDTH / 2, 400, False)
+            all_sprites_list.draw(screen)
+            pygame.display.flip()
+            time.sleep(2)
+            quest_completed = False
+        if x == True:
+            hold = True
+        if x == True and encounter[1] == [] or hold == True and encounter[1]==[]:
+            quest_completed = True
+            name = main.Q.questname
+            if main.Q.currentquest[0] == 'monster':
+                xp = main.Q.currentquest[1]
+            else:
+                xp = main.Q.currentquest[2]
+            main.Q.questname = ''
+            all_sprites_list.draw(screen)
+            pygame.display.flip()
+            hold = False
         #    print('x{0}'.format(playerCar.rect.x))
         #    print('y{0}'.format(playerCar.rect.y))
         all_sprites_list.draw(screen)

@@ -1,8 +1,13 @@
-import random,math,time
+import random,math,time,os
 print("welcome to max's text based rpg")
 #add ability to unlock new areas
 #@todo
-###fix movement system so it works both ways
+###fix the quest system
+##fix the double movement bug when completing a movement based quest
+##get the unlock system finished
+##make desert map
+##make hunted wasteland lead to dungen trigger
+##start work on grassland well dungent to get out of desert
 
 class Dungouns:
      def __init__(self):
@@ -52,20 +57,23 @@ class Locations:
 #    def new_unlock(self):
 
 class Quest:
-    def __init__(self):
-        self.questlist = {'central plain':['impressive progress',['place','west plain',40,False,False,False,'move to the west plain'],'help needed',['monster',120,False,False,False,'plains','kill 4 thiefs','thief',4]],'west plain':['a new world',['level',10,100,False,True,False,'des']]}
+    def __init__(self):# quest list format {'pricide location[ quest name [type,type speisific informantion/xp for monster type, xp for other types,completed,unlock,chain,description/location of enermy type for monster,if existance it will be description of monster, if existance it will be type of mosnter, if existant it will number of that type of enermy yu need]]
+        self.questlist = {'central_plain':['impressive progress',['place','west_plain',40,False,False,False,'move to the west plain'],'help needed',['monster',120,False,False,False,'plains','kill 4 thiefs','thief',4]],'west_plain':['a new world',['level',10,100,False,True,False,'des']]}
         self.questname =''
         self.currentquest = []
         self.quest_set = False
         self.currentquestlocaton = ''
     def set_quest(self,quest,details):
-        self.currentquest = details
-        self.questname = quest
-        self.quest_set = True
-        self.currentquestlocaton = L.precise_location
+            self.currentquest = details
+            self.questname = quest
+            self.quest_set = True
+            self.currentquestlocaton = L.precise_location
     def finish_quest(self):
         self.quest_set = False
-        C.xp_gain(self.currentquest[2])
+        if self.currentquest[0] =='monster':
+            C.xp_gain(self.currentquest[1])
+        else:
+            C.xp_gain(self.currentquest[2])
         self.currentquest[3] = True
         self.questlist[self.currentquestlocaton][self.questlist[self.currentquestlocaton].index(self.currentquest)] = self.currentquest
         if self.currentquest[4] == True:
@@ -76,20 +84,27 @@ class Quest:
     def check_quest(self):
         if self.quest_set == True:
             if self.currentquest[0]=='place':
-                if L.precise_location == self.currentquest[1]: 
+                if L.precise_location == self.currentquest[1]:
                     print('you finished the quest {0}'.format(self.questname))
                     self.currentquest[3] = True
                     self.finish_quest()
+                    return True
             elif self.currentquest[0]=='monster':
-                if B.enermy[self.currentquest[5]][self.currentquest[7]][7] >= self.currentquest[8]:
+                temp = B.enermy[self.currentquest[5]][self.currentquest[7]]
+                if temp[(len(temp)-1)] >= self.currentquest[8]:
                     print('you finished the quest {0}'.format(self.questname))
                     self.currentquest[5] = True
                     self.finish_quest()
+                    return True
             elif self.currentquest[0]=='level':
                 if C.stats()[8] == self.currentquest[1]:
                     print('you finished the quest {0}'.format(self.questname))
                     self.currentquest[5] = True
                     self.finish_quest()
+                    return True
+            return False
+        else:
+            return None
 
     def start_quest(self):
         try:
@@ -118,13 +133,14 @@ class Quest:
             print('there is no quests here')
 class Battle:
     def __init__(self):
-        self.enermy = {'plains':{'agressive plant':[200,5,T.type_ele(2),20,1,4,1,0],'thief':[300,2,T.type_ele(2),30,4,1,1,0]},'eastern desert':{'awakened sand':[150,10,T.type_ele(2),40,3,7,10,0]}}
+        self.enermy = {'plains':{'agressive_plant':[200,5,T.type_ele(2),20,1,4,1,0],'thief':[300,2,T.type_ele(2),30,4,1,1,0]},'eastern desert':{'awakened sand':[150,10,T.type_ele(2),40,3,7,10,0]}}
         self.encounters = {'plains': 0.02,'eastern desert': 0.04,'dark clouds':0.06,'town': 0.03,'deep cave':0.05}
         self.enermy_hp = 0
         self.enermy_type_ = 0
         self.enermy_damage = 0
         self.enermy_xp = 0
         self.numdefeted = 0
+        self.magic_count = 0
     def encounter(self,searched):
         find = self.encounters[M.location] + random.random()
         if find >= 1 or searched == True:
@@ -136,9 +152,8 @@ class Battle:
             self.enermy_xp = stats[3]
             self.focus = stats[4]
             self.magic = stats[5]
-            self.magic_count = stats[6]
             print('you have encountered a enermy {0}'.format(oppnent))
-            return True,stats
+            return True,stats,oppnent
         return False,[]
     def fight(self,stats,oppnent):
         hp = C.stats()[0]
@@ -156,50 +171,17 @@ class Battle:
             magic_count = magic_count + 1
             print('you have {0} magic'.format(magic_count))
             if turn == '1':
-                self.enermy_hp = self.enermy_hp - (damage * modifier)
-                print('you did {0} damage.enermy has {1} health left'.format((damage * modifier),self.enermy_hp))
+                self.enermyhp = B.attack(self.enermy_hp,damage,modifier,'you')
             if turn == '2':
-                if magic_count >= 2:
-                    hp = hp + (magic * 2)
-                    magic_count = magic_count - 2
-                    print('you healed {0} damage.you have {1} health left'.format((magic * 2), hp))
+                hp = B.heal(hp,magic_count,magic,'you')
+                print(hp)
+                print(magic_count)
+                print(magic)
             if turn == '3':
-                if magic_count >= 3:
-                    self.enermy_hp =self.enermy_hp - (magic * 2)
-                    magic_count = magic_count - 3
-                    print('you did {0} damage.enermy has {1} health left'.format((magic * 2), self.enermy_hp))
+                self.enermyhp = B.magic_damage(magic_count,magic,self.enermyhp,'you')
             if turn == '4':
-                p_run = True
-                run = random.randint(1,5)
-                if run == 4:
-                    self.enermy_hp = 0
-                    no_xp = True
-                    print('you were able to get away')
-                else:
-                    print('you tried to run but werent able to')
-            choice = random.randint(1,7)
-            if self.focus == 1 and choice in [5,6,7] or choice == 1:
-                attack = (self.enermy_damage * T.crit(self.enermy_type_, p_type_))
-                hp = hp- attack
-                print('the enermy did {0} damage.you have {1} health left'.format(attack, hp))
-            if self.focus == 2 and choice in [5,6,7] or choice == 2 or self.enermy_hp <= (self.enermy_hp / 4) and self.magic_count >= 2:
-                if self.magic_count >= 2:
-                    self.enermy_hp = self.enermy_hp+  self.magic * 2
-                    self.magic_count =self.magic_count- 2
-                    print('the enermy healed for {0} .it now has {1} health left'.format((self.magic * 2), self.enermy_hp))
-            if self.focus == 3 and choice in [5,6,7] or choice == 3:
-                if self.magic_count >= 3:
-                    hp =hp - self.magic * 2
-                    self.magic_count =self.magic_count- 3
-                    print('you did {0} damage.enermy has {1} health left'.format((magic * 2), self.enermy_hp))
-            if self.focus == 4 and choice in [5,6,7] or choice == 4:
-                run = random.randint(1,5)
-                if run == 4 or p_run == True:
-                    self.enermy_hp = 0
-                    no_xp = True
-                    print('the enermy ran from you')
-                else:
-                    print('the enrmy tried to run but you caught them')
+                no_xp = B.run()
+            self.AI_turn(hp,p_type_)
         if no_xp == True:
             M.start(),
         elif hp != 0:
@@ -210,6 +192,53 @@ class Battle:
         else:
             print('you died')
             return None
+    def attack(self,attacked,damage,modifier,name):
+        attacked = attacked - (damage * modifier)
+        print('{2} did {0} damage.enermy has {1} health left'.format((damage * modifier),attacked,name))
+        return attacked
+    def heal(self,hp,magic_count,magic,name):
+        if magic_count >= 2:
+            hp = hp + (magic * 2 * magic_count)
+            magic_count = magic_count - 2
+            print('{2} healed {0} health.{2} have {1} health left'.format((magic * 2), hp,name))
+            return hp
+        return hp
+    def magic_damage(self,magic_count,magic,attacked,name):
+        if magic_count >= 3:
+            attacked = attacked - (magic * 2)
+            magic_count = magic_count - 3
+            print('{2} did {0} damage.enermy has {1} health left'.format((magic * 2), attacked,name))
+            return attacked#make sure to return magic count
+        return attacked
+    def run(self):
+        p_run = True
+        run = random.randint(1, 5)
+        if run == 4:
+            self.enermy_hp = 0
+            no_xp = True
+            print('you were able to get away')
+            return no_xp
+        else:
+            print('you tried to run but werent able to')
+            return False
+    def AI_turn(self,hp,p_type_,h2):
+        choice = random.randint(1, 7)
+        choice_ai = ''
+        test = True
+        self.magic_count = self.magic_count + 1
+        if self.focus == 1 and choice in [5, 6, 7] or choice == 1:
+            hp = B.attack(hp, self.enermy_damage, T.crit(self.enermy_type_, p_type_),'enermy')
+            choice_ai = 'attack'
+        elif self.focus == 2 and choice in [5, 6, 7] or choice == 2 or self.enermy_hp <= (self.enermy_hp / 4) and self.magic_count >= 2:
+            hp = B.heal(h2, self.magic_count, self.magic, 'enermy')
+            choice_ai = 'heal'
+        elif self.focus == 3 and choice in [5, 6, 7] or choice == 3:
+            hp = B.magic_damage(self.magic_count, self.magic, hp,'enermy')
+            choice_ai = 'magic attack'
+        elif self.focus == 4 and choice in [5, 6, 7] or choice == 4:
+            hp = B.run()
+            choice_ai = 'run'
+        return choice_ai,hp
 class Main:
     def __init__(self):
         self.char = C.stats()
@@ -299,8 +328,8 @@ class Charaters:
              xp_gained = xp_gained - xp_needed
              if xp_gained != 0 and xp_gained >= 0:
                  C.level_up()
+                 xp_needed = self.next_xp
          self.next_xp = xp_needed + xp_gained
-         print(self.next_xp)
      def level_up(self):
          self.hp *= self.levelup_mod[0]
          self.damage *= self.levelup_mod[1]

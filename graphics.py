@@ -35,7 +35,15 @@ def movement(direction,nx,ny,move):
         playerCar.rect.x = nx
         main.L.precise_location = z
     elif direction == 'forward' and type(z) == tuple and ((main.L.loc(main.M.location).index(main.L.precise_location))) + 2 ==len(main.L.loc(main.M.location)) and  main.L.unlocked[(main.L.map.index(main.M.location)) + 1] == 1 and move == True:
+            print(direction)
+            print(type(z))
+            print(((main.L.loc(main.M.location).index(main.L.precise_location))) + 2)
+            print(len(main.L.loc(main.M.location)))
+            print(main.L.unlocked[(main.L.map.index(main.M.location)) + 1])
+            print(move)
             bg = 'images/{0}_open.png'.format(z[1])
+            main.L.provence_change(z[1]) #okay this isnt triggering when your moving
+            print('rwejrhwejkrhwlkqjhrkjqwhlkrjqhwkjrhqewkjlrhjew')
             current = bg
             playerCar.rect.y = ny
             playerCar.rect.x = nx
@@ -63,7 +71,7 @@ def movement(direction,nx,ny,move):
             old = current
             previous = current
             first = False
-        bg=(f'images/battle_bg_{main.M.location}.png') 
+        bg=(f'images/battle_bg_{main.M.location}.png')
         current=bg
         now = True
     elif now == True and encounter[0] == False:
@@ -332,6 +340,9 @@ class Quests:
     def __init__(self):
         self.one_NPC = Sprite_NPC((0, 0, 255), 30, 20, 'help needed',100,200)
         self.steve = Sprite_NPC((7, 34, 9), 30, 20, 'impressive progress',290,150)
+        self.dave = Sprite_NPC((32,42,1),30,20,'a new world',400,200)
+        self.NPC_list = [self.one_NPC,self.steve,self.dave]
+
     def activate(self,location):
         quest = ''
         if location == 'images/central_plain.png':
@@ -345,8 +356,18 @@ class Quests:
             if quest != '' and quest != None:
                 quest = Q.quest_handle(quest)
                 return quest
+            temp = [self.NPC_list[2]]
+            self.remove_npc(temp)
+        elif location == 'images/west_plain_open.png' or location == 'images/west_plain_closed.png':
+            all_sprites_list.add(self.dave)
+            quest=self.dave.collide()
+            if quest != '' and quest != None:
+                quest = Q.quest_handle(quest)
+                return quest
+            temp = [self.NPC_list[0],self.NPC_list[1]]
+            self.remove_npc(temp)
         else:
-            self.remove_npc()
+            self.remove_npc(self.NPC_list)
     def quest_handle(self,quest):
         global quest_set
         x = main.Q.questlist[main.L.precise_location]
@@ -357,9 +378,9 @@ class Quests:
         x = main.Q.questlist[main.L.precise_location]
         stats=(x[x.index(quest)+1])
         main.Q.set_quest(quest,stats)
-    def remove_npc(self):
-        all_sprites_list.remove(self.one_NPC)
-        all_sprites_list.remove(self.steve)
+    def remove_npc(self,list):
+        for i in range(len(list)):
+            all_sprites_list.remove(list[i])
 # Object class
 class Sprite(pygame.sprite.Sprite):
     def __init__(self, color, height, width):
@@ -592,7 +613,7 @@ while exit:
     all_sprites_list.update()
     screen.blit(imp, (0, 0))
     if encounter[0] == True:
-        Q.remove_npc()
+        Q.remove_npc(Q.NPC_list)
         enermy = Sprite_enermy(encounter[2])
         encounter = B.battle()
         start = False
